@@ -1,0 +1,201 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- ITILIZATÈ AK OTOANTIKASYON ---
+model User {
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  password             String
+  telephone            String    @default("")
+  adress               String    @default("")
+  isEmailConfirmed     Boolean   @default(false)
+  confirmationToken    String?
+  resetPasswordToken   String?   @unique
+  pushToken            String?
+  resetPasswordExpires DateTime?
+  provider             String    @default("local")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Detay chofè
+  isAvailableForDelivery Boolean @default(false)
+  currentLatitude        Float?
+  currentLongitude       Float?
+
+  role    Role     @default(CUSTOMER)
+  profile Profile?
+
+  orders       Order[]     @relation("CustomerOrders")
+  driverOrders Order[]     @relation("DriverOrders")
+  restaurant   Restaurant?
+
+  sentNotifications Notification[] @relation("SentNotifications")
+  notifications     Notification[] @relation("ReceivedNotifications")
+  likes             Like[]
+  reviews           Review[]
+}
+
+enum Role {
+  ADMIN
+  RESTAURANT_OWNER
+  CUSTOMER
+  DRIVER
+}
+
+enum StoreStatus {
+  OPEN
+  BUSY
+  CLOSED
+}
+
+enum SellerStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Profile {
+  id        String  @id @default(uuid())
+  username  String? @unique
+  avatarUrl String?
+  bannerUrl String?
+  bio       String? @db.Text
+  location  String?
+
+  // Jesyon Seller / Restoran
+  isSeller     Boolean      @default(false)
+  verified     Boolean      @default(false)
+  storeStatus  StoreStatus  @default(CLOSED)
+  lat          Float?
+  lng          Float?
+  phone        String?
+  sellerStatus SellerStatus @default(NONE)
+  documentUrl      String?
+
+  socialLinks Json? @default("{\"instagram\": \"\", \"facebook\": \"\", \"youtube\": \"\", \"tiktok\": \"\"}")
+  balance     Float @default(0.00)
+  totalEarned Float @default(0.00)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+  updatedAt DateTime @updatedAt
+}
+
+// --- RESTORAN AK MENI ---
+model Restaurant {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  ownerId     String     @unique
+  owner       User       @relation(fields: [ownerId], references: [id])
+  menus       MenuItem[]
+  orders      Order[]
+  reviews     Review[]
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  menuItems MenuItem[]
+}
+
+model MenuItem {
+  id           String      @id @default(uuid())
+  name         String
+  price        Float
+  image        String?
+  categoryId   String?
+  category     Category?   @relation(fields: [categoryId], references: [id])
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  orderItems   OrderItem[]
+  likes        Like[] // Yon atik meni kapab gen "like"
+}
+
+// --- KÒMAND AK LIVREZON ---
+model Order {
+  id           String     @id @default(uuid())
+  customerId   String
+  customer     User       @relation("CustomerOrders", fields: [customerId], references: [id])
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  driverId     String?
+  driver       User?      @relation("DriverOrders", fields: [driverId], references: [id])
+
+  deliveryCode    String?
+  isCodeValidated Boolean @default(false)
+
+  items         OrderItem[]
+  total         Float
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(UNPAID)
+  paymentMethod String //"CASH", "CARD", "MONCASH"
+
+  deliveryAddress String
+  latitude        Float?
+  longitude       Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  DELIVERING
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity   Int
+}
+
+// --- LÒT MODÈL ---
+model Review {
+  id           String     @id @default(uuid())
+  rating       Int // 1-5
+  comment      String?
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  createdAt    DateTime   @default(now())
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  content    String
+  senderId   String
+  sender     User     @relation("SentNotifications", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("ReceivedNotifications", fields: [receiverId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model Like {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  menuItemId String?
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id])
+  createdAt  DateTime  @default(now())
+}
