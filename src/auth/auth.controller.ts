@@ -8,7 +8,11 @@ import {
     UseGuards,
     Request,
     Req,
-    Res
+    Res,
+    HttpCode,
+    HttpStatus,
+    UseInterceptors,
+    UploadedFiles
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -16,7 +20,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from 'src/guard/jwt-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { BecomeSellerDto } from './dto/become-seller.dto';
-
+import { FilesInterceptor } from '@nestjs/platform-express';
 @Controller('auth')
 export class AuthController {
     constructor(private readonly authService: AuthService) { }
@@ -75,12 +79,18 @@ export class AuthController {
     }
 
     // 6. BECOME A SELLER (Requires Auth)
-    @UseGuards(JwtAuthGuard)
     @Patch('become-seller')
-    async becomeSeller(@Req() req: any, @Body() payload: any) {
-        // req.user ap genyen enfòmasyon itilizatè a gras ak JwtStrategy la
-        const userId = req.user.id;
-        return this.authService.becomeSeller(userId, payload);
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    // 🚨 Nou di l trape yon chan ki rele "documents" ki ka gen jiska 5 fichye ladan l
+    @UseInterceptors(FilesInterceptor('documents', 5))
+    async becomeSeller(
+        @Request() req,
+        @Body() dto: BecomeSellerDto,
+        @UploadedFiles() files: Express.Multer.File[], 
+    ) {
+        const userId=req?.user?.id
+        return this.authService.becomeSeller(userId, dto, files);
     }
 
     // 7. GET PROFILE (Requires Auth)

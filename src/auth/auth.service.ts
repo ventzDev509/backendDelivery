@@ -14,16 +14,23 @@ import { v4 as uuidv4 } from 'uuid';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { BecomeSellerDto } from './dto/become-seller.dto';
-
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseService } from 'src/common/supabase.service';
 @Injectable()
 export class AuthService {
     private readonly logger = new Logger(AuthService.name);
-
+    private supabase: SupabaseClient;
     constructor(
         private prisma: PrismaService,
         private mailService: MailService,
         private jwtService: JwtService,
-    ) { }
+        private supabaseService: SupabaseService,
+    ) {
+        this.supabase = createClient(
+            process.env.SUPABASE_URL || "",
+            process.env.SUPABASE_ANON_KEY || ""
+        );
+    }
 
     /**
      * Kreyasyon kont
@@ -208,7 +215,11 @@ export class AuthService {
     /**
      * 4. deveni machann
      */
-    async becomeSeller(userId: string, dto: BecomeSellerDto) {
+    async becomeSeller(
+        userId: string,
+        dto: BecomeSellerDto,
+        documentFiles: Express.Multer.File[]
+    ) {
         // 1. Tcheke si pwofil la egziste
         const profile = await this.prisma.profile.findUnique({
             where: { userId },
@@ -218,22 +229,34 @@ export class AuthService {
             throw new NotFoundException('Pwofil sa a pa egziste.');
         }
 
-        // 2. Si moun nan te voye yon demand deja ki an atant, nou bloke l
+        // 2. Si moun nan gen yon demand ki an atant deja, nou bloke l
         if (profile.sellerStatus === 'PENDING') {
             throw new BadRequestException('Ou gen yon demand ki an atant pou verifikasyon deja.');
         }
 
-        // 3. Mete pwofil la ajou nan mòd PENDING  pou admin ka analize l
+        // 3. Verifye si moun lan voye fichye tout bon vre
+        if (!documentFiles || documentFiles.length === 0) {
+            throw new BadRequestException('Ou dwe uploade omwen yon dokiman (pyès validasyon).');
+        }
+
+        // 4. Boukle sou tout fichye yo pou uploade yo sou Firebase anmenmtan
+        const uploadedDocumentUrls = await Promise.all(
+            documentFiles.map(async (file) => {
+                return this.supabaseService.uploadFile(file, 'validations');
+            })
+        );
+
+        // 5. Mete pwofil la ajou epi sove tablo lyen Firebase yo nan kolòn documentUrl la
         return this.prisma.profile.update({
             where: { userId },
             data: {
                 username: dto.username,
                 bio: dto.bio,
                 location: dto.location,
-                lat: dto.lat,
-                lng: dto.lng,
+                lat: typeof dto.lat === 'string' ? parseFloat(dto.lat) : dto.lat,
+                lng: typeof dto.lng === 'string' ? parseFloat(dto.lng) : dto.lng,
                 phone: dto.phone,
-                documentUrl: dto.documentUrl,
+                documentUrl: uploadedDocumentUrls,
                 sellerStatus: 'PENDING',
                 isSeller: false,
                 storeStatus: 'CLOSED',
@@ -250,7 +273,7 @@ export class AuthService {
             where: { userId },
             data: {
                 sellerStatus: status,
-                isSeller: status === 'APPROVED', 
+                isSeller: status === 'APPROVED',
                 storeStatus: status === 'APPROVED' ? 'OPEN' : 'CLOSED',
             },
         });

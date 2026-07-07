@@ -77,7 +77,7 @@ model Profile {
   lng          Float?
   phone        String?
   sellerStatus SellerStatus @default(NONE)
-  documentUrl      String?
+  documentUrl String[]
 
   socialLinks Json? @default("{\"instagram\": \"\", \"facebook\": \"\", \"youtube\": \"\", \"tiktok\": \"\"}")
   balance     Float @default(0.00)

@@ -1,5 +1,5 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl } from 'class-validator';
-
+import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl } from 'class-validator';
+import { Transform } from 'class-transformer';
 export class BecomeSellerDto {
   @IsString({ message: 'Non boutik/itilizatè a dwe yon chenn karaktè (string).' })
   @IsNotEmpty({ message: 'Fòk ou mete yon non pou boutik la.' })
@@ -13,12 +13,14 @@ export class BecomeSellerDto {
   @IsNotEmpty({ message: 'Fòk ou rantre adrès kote boutik la ye a.' })
   location!: string;
 
-  @IsNumber({}, { message: 'Latitid la dwe yon chif/nimewo valid.' })
-  @IsNotEmpty({ message: 'Kowòdone latitid la obligatwa pou livrezon an.' })
+  @IsNumber({}, { message: 'Latitid dwe yon nimewo valid' })
+  @IsNotEmpty()
+  @Transform(({ value }) => parseFloat(value))
   lat!: number;
 
   @IsNumber({}, { message: 'Lonjitid la dwe yon chif/nimewo valid.' })
   @IsNotEmpty({ message: 'Kowòdone lonjitid la obligatwa pou livrezon an.' })
+  @Transform(({ value }) => parseFloat(value))
   lng!: number;
 
   @IsString({ message: 'Nimewo telefòn lan dwe yon chenn karaktè (string).' })
@@ -26,7 +28,6 @@ export class BecomeSellerDto {
   phone!: string;
 
   // 👇 NOUVO CHAN POU PYÈS IDANTITE OWA DOKIMAN BIZNIS LAN
-  @IsString({ message: 'Lyen dokiman an dwe yon chenn karaktè (string).' })
-  @IsNotEmpty({ message: 'Fòk ou voye yon foto oswa yon kopi pyès idantite w pou verifikasyon.' })
-  documentUrl!: string;
+  @IsOptional()
+  documentUrl!: string[];
 }

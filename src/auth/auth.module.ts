@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy'; 
+import { SupabaseModule } from 'src/common/supabase.module';
 
 @Module({
   imports: [
@@ -14,10 +15,11 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       secret: process.env.JWT_SECRET || 'secretKey', 
       signOptions: { expiresIn: '1h' },
     }),
+    SupabaseModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
   ],
   controllers: [AuthController],
   providers: [AuthService, GoogleStrategy, JwtStrategy], 
   exports: [PassportModule, JwtStrategy, JwtModule],
 })
-export class AuthModule {}
+export class AuthModule {}  
