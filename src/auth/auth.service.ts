@@ -283,6 +283,9 @@ export class AuthService {
      * 5. FIND ONE
      */
     async findOne(id: string) {
+        if (!id) {
+            throw new Error("ID itilizatè a manke oswa li pa valab.");
+        }
         const user = await this.prisma.user.findUnique({
             where: { id },
             include: { profile: true },

@@ -27,18 +27,19 @@ model User {
   isAvailableForDelivery Boolean @default(false)
   currentLatitude        Float?
   currentLongitude       Float?
-
+  // driver Driver?
   role    Role     @default(CUSTOMER)
   profile Profile?
-
+  
+  
   orders       Order[]     @relation("CustomerOrders")
-  driverOrders Order[]     @relation("DriverOrders")
   restaurant   Restaurant?
 
   sentNotifications Notification[] @relation("SentNotifications")
   notifications     Notification[] @relation("ReceivedNotifications")
   likes             Like[]
   reviews           Review[]
+  drivers Driver[]
 }
 
 enum Role {
@@ -126,11 +127,11 @@ model Order {
   customer     User       @relation("CustomerOrders", fields: [customerId], references: [id])
   restaurantId String
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
-  driverId     String?
-  driver       User?      @relation("DriverOrders", fields: [driverId], references: [id])
 
   deliveryCode    String?
   isCodeValidated Boolean @default(false)
+  driverId String?
+  driver   Driver?  @relation(fields: [driverId], references: [id])
 
   items         OrderItem[]
   total         Float
@@ -198,4 +199,58 @@ model Like {
   menuItemId String?
   menuItem   MenuItem? @relation(fields: [menuItemId], references: [id])
   createdAt  DateTime  @default(now())
+}
+
+
+
+
+
+
+
+
+
+
+// Ajoute Enum sa a
+enum VehicleType {
+  MOTORCYCLE
+  BICYCLE
+  CAR
+  TRUCK
+}
+enum DriverStatus {
+  AVAILABLE
+  ON_DELIVERY
+  BROKEN_DOWN
+  IN_TRAFFIC
+  OFFLINE
+  SUSPENDED 
+}
+
+model Driver {
+  id            String       @id @default(uuid())
+  name          String
+  
+ 
+  phone         String       
+  email         String       @unique 
+  
+  status        DriverStatus @default(OFFLINE)
+  
+  // Detay teknik
+  vehicleType   VehicleType  @default(MOTORCYCLE)
+  vehiclePlate  String?      
+  
+  // Lojistik platfòm la
+  isVerified    Boolean      @default(false) 
+  currentLat    Float?
+  currentLng    Float?
+  lastActive    DateTime     @default(now())
+  
+ userId    String   
+  user      User     @relation(fields: [userId], references: [id])
+  // Yon chofè ka gen plizyè lòd
+  orders        Order[]
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }

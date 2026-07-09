@@ -1,26 +1,31 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ROLES_KEY } from './roles.decorator'; // ENPÒTAN: Itilize menm kle a
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    // 1. Rale wòl nou te mete nan dekoratè @Roles() la
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+  const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+    context.getHandler(),
+    context.getClass(),
+  ]);
 
-    // Si nou pa t mete okenn wòl pou wout sa a, kite l pase
-    if (!requiredRoles) {
-      return true;
-    }
+  if (!requiredRoles) return true;
 
-    // 2. Jwenn user a ki nan request la (JwtAuthGuard la te mete l la deja)
-    const { user } = context.switchToHttp().getRequest();
-    
-    // 3. Verifye si user a gen wòl ki nesesè a
-    return requiredRoles.some((role) => user?.role === role);
+  const { user } = context.switchToHttp().getRequest();
+
+  if (!user || !user.role) {
+    console.log("RolesGuard: User pa jwenn oswa li pa gen wòl!");
+    return false;
   }
+
+  // Debug konparezon an
+  const hasRole = requiredRoles.some((role) => {
+    return user.role === role;
+  });
+
+  return hasRole;
+}
 }

@@ -1,0 +1,6 @@
+-- AlterEnum
+ALTER TYPE "DriverStatus" ADD VALUE 'SUSPENDED';
+
+-- AlterTable
+ALTER TABLE "Driver" ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "isVerified" BOOLEAN NOT NULL DEFAULT false;

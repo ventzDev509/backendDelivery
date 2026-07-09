@@ -6,11 +6,12 @@ import { PrismaModule } from './prisma/prisma.module';
 import { MailModule } from './mail/mail.module';
 import { ConfigModule } from '@nestjs/config';
 import { AdminModule } from './admin/admin.module';
+import { DriverModule } from './driver/driver.module';
 
 @Module({
   imports: [AuthModule, PrismaModule, MailModule, ConfigModule.forRoot({
     isGlobal: true,
-  }), AdminModule,],
+  }), AdminModule, DriverModule,],
   controllers: [AppController],
   providers: [AppService],
 })
