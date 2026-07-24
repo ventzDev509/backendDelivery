@@ -117,7 +117,7 @@ model MenuItem {
   restaurantId String
   restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
   orderItems   OrderItem[]
-  likes        Like[] // Yon atik meni kapab gen "like"
+  likes        Like[] 
 }
 
 // --- KÒMAND AK LIVREZON ---

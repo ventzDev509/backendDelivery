@@ -22,7 +22,7 @@ export class RestaurantService {
   
   // 2. JWENN TOU RESTORAN YO
   async findAll() {
-    const r= await this.prisma.restaurant.findMany({
+    const r= this.prisma.restaurant.findMany({
       include: {
         owner: {
           select: {
@@ -34,6 +34,7 @@ export class RestaurantService {
         menus: true,
       },
     });
+    
     return r
   }
 
@@ -78,6 +79,7 @@ export class RestaurantService {
       data: {
         name: dto.name,
         description: dto.description,
+        
       },
     });
   }

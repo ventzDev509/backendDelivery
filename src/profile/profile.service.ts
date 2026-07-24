@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; // Asire w chemen an bon
 import { Profile, Prisma } from '@prisma/client';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class ProfileService {
@@ -24,11 +25,24 @@ export class ProfileService {
     }
 
     // 4. MIZAJOU PROFIL (Sèvi ak userId pou idantifye kiyès ki bezwen update)
-    async update(userId: string, data: Prisma.ProfileUpdateInput): Promise<Profile> {
-        return this.prisma.profile.update({
-            where: { userId },
-            data,
-        });
+    async update(userId: string, data: UpdateProfileDto): Promise<Profile> {
+        try {
+            const r= this.prisma.profile.upsert({
+                where: {
+                    userId: userId,
+                },
+                update: data,
+                create: {
+                    userId: userId,
+                    username: (data.username as string) || 'Nouvo Itilizatè',
+                    phone: (data.phone as string) || '',
+                    bio: (data.bio as string) || '',
+                },
+            });
+            return r;
+        } catch (error) {
+            throw new BadRequestException(error);
+        }
     }
 
     async updateLocation(userId: string, data: { lat: number; lng: number }) {

@@ -82,7 +82,6 @@ export class AuthController {
     @Patch('become-seller')
     @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
-    // 🚨 Nou di l trape yon chan ki rele "documents" ki ka gen jiska 5 fichye ladan l
     @UseInterceptors(FilesInterceptor('documents', 5))
     async becomeSeller(
         @Request() req,
