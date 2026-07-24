@@ -14,8 +14,7 @@ import { UpdateDriverDto } from './dto/update-driver-dto';
 export class DriverController {
     constructor(private readonly driverService: DriverService) { }
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
+    
     @Get()
     findAll() {
         return this.driverService.findAll();
