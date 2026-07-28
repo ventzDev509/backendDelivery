@@ -9,11 +9,12 @@ import { AdminModule } from './admin/admin.module';
 import { DriverModule } from './driver/driver.module';
 import { ProfileModule } from './profile/profile.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [AuthModule, PrismaModule, MailModule, ConfigModule.forRoot({
     isGlobal: true,
-  }), AdminModule, DriverModule, ProfileModule, RestaurantModule,],
+  }), AdminModule, DriverModule, ProfileModule, RestaurantModule, CategoryModule,],
   controllers: [AppController],
   providers: [AppService],
 })

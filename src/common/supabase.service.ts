@@ -22,15 +22,15 @@ export class SupabaseService {
     }
 
     /**
-     * 🔥 NOUVO: Netwaye non fichye a nèt pou Supabase pa bay erè
+     * 🔥 Netwaye non fichye a nèt pou Supabase pa bay erè
      */
     private sanitizeFileName(fileName: string): string {
         return fileName
-            .normalize('NFD')                     
+            .normalize('NFD')                    
             .replace(/[\u0300-\u036f]/g, '')     
             .replace(/[^a-zA-Z0-9.\-_]/g, '_')    
-            .replace(/_{2,}/g, '_')               
-            .toLowerCase();                       
+            .replace(/_{2,}/g, '_')              
+            .toLowerCase();                     
     }
 
     private async compressAudio(file: Express.Multer.File): Promise<Buffer> {
@@ -69,7 +69,6 @@ export class SupabaseService {
         let bufferToUpload = file.buffer;
         let finalMimeType = file.mimetype;
         
-        
         let cleanName = this.sanitizeFileName(file.originalname);
         
         if (file.mimetype.startsWith('audio/')) {
@@ -81,7 +80,6 @@ export class SupabaseService {
                 const newSize = (bufferToUpload.length / (1024 * 1024)).toFixed(2);
                 
                 finalMimeType = 'audio/mpeg';
-                
                 
                 const nameWithoutExt = cleanName.substring(0, cleanName.lastIndexOf('.')) || cleanName;
                 cleanName = `${nameWithoutExt}.mp3`;
@@ -111,5 +109,32 @@ export class SupabaseService {
             .getPublicUrl(fileKey);
 
         return publicUrl.publicUrl;
+    }
+
+    /**
+     * 🗑️ Fonksyon pou siprime nenpòt fichye (imaj oswa odyo) nan Supabase lè yo voye URL li
+     */
+    async deleteImageFromSupabase(imageUrl: string) {
+        try {
+            if (!imageUrl) return;
+            
+            // Egzanp URL Supabase: https://xxx.supabase.co/storage/v1/object/public/hmizik/menu-images/1785264926482-7up.jpg
+            const bucketName = 'hmizik';
+            const parts = imageUrl.split(`/${bucketName}/`);
+            
+            if (parts.length > 1) {
+                const filePath = parts[1]; // Sa ap bay egzanp: "menu-images/1785264926482-7up.jpg"
+                
+                const { error } = await this.supabase.storage
+                    .from(bucketName)
+                    .remove([filePath]);
+
+                if (error) {
+                    console.error("Erè pandan sipresyon fichye nan Supabase:", error.message);
+                }
+            }
+        } catch (error) {
+            console.error("Erè pandan y ap siprime fichye a nan Supabase:", error);
+        }
     }
 }

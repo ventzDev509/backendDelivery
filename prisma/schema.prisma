@@ -24,22 +24,21 @@ model User {
   updatedAt            DateTime  @updatedAt
 
   // Detay chofè
-  isAvailableForDelivery Boolean @default(false)
+  isAvailableForDelivery Boolean  @default(false)
   currentLatitude        Float?
   currentLongitude       Float?
   // driver Driver?
-  role    Role     @default(CUSTOMER)
-  profile Profile?
-  
-  
-  orders       Order[]     @relation("CustomerOrders")
-  restaurant   Restaurant?
+  role                   Role     @default(CUSTOMER)
+  profile                Profile?
+
+  orders     Order[]     @relation("CustomerOrders")
+  restaurant Restaurant?
 
   sentNotifications Notification[] @relation("SentNotifications")
   notifications     Notification[] @relation("ReceivedNotifications")
   likes             Like[]
   reviews           Review[]
-  drivers Driver[]
+  drivers           Driver[]
 }
 
 enum Role {
@@ -78,15 +77,15 @@ model Profile {
   lng          Float?
   phone        String?
   sellerStatus SellerStatus @default(NONE)
-  documentUrl String[]
+  documentUrl  String[]
 
-  socialLinks Json? @default("{\"instagram\": \"\", \"facebook\": \"\", \"youtube\": \"\", \"tiktok\": \"\"}")
-  balance     Float @default(0.00)
-  totalEarned Float @default(0.00)
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String   @unique
-  updatedAt DateTime @updatedAt
+  socialLinks  Json?          @default("{\"instagram\": \"\", \"facebook\": \"\", \"youtube\": \"\", \"tiktok\": \"\"}")
+  balance      Float          @default(0.00)
+  totalEarned  Float          @default(0.00)
+  workingHours WorkingHours[]
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String         @unique
+  updatedAt    DateTime       @updatedAt
 }
 
 // --- RESTORAN AK MENI ---
@@ -111,13 +110,19 @@ model MenuItem {
   id           String      @id @default(uuid())
   name         String
   price        Float
+  description  String
   image        String?
   categoryId   String?
+  isAvailable  Boolean?
+  salesCount   Int?
+  prepTime     Float?
   category     Category?   @relation(fields: [categoryId], references: [id])
   restaurantId String
   restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
   orderItems   OrderItem[]
-  likes        Like[] 
+  likes        Like[]
+  createdAt   DateTime    @default(now()) 
+  updatedAt   DateTime    @updatedAt
 }
 
 // --- KÒMAND AK LIVREZON ---
@@ -130,8 +135,8 @@ model Order {
 
   deliveryCode    String?
   isCodeValidated Boolean @default(false)
-  driverId String?
-  driver   Driver?  @relation(fields: [driverId], references: [id])
+  driverId        String?
+  driver          Driver? @relation(fields: [driverId], references: [id])
 
   items         OrderItem[]
   total         Float
@@ -201,15 +206,6 @@ model Like {
   createdAt  DateTime  @default(now())
 }
 
-
-
-
-
-
-
-
-
-
 // Ajoute Enum sa a
 enum VehicleType {
   MOTORCYCLE
@@ -217,40 +213,56 @@ enum VehicleType {
   CAR
   TRUCK
 }
+
 enum DriverStatus {
   AVAILABLE
   ON_DELIVERY
   BROKEN_DOWN
   IN_TRAFFIC
   OFFLINE
-  SUSPENDED 
+  SUSPENDED
 }
 
 model Driver {
-  id            String       @id @default(uuid())
-  name          String
-  
- 
-  phone         String       
-  email         String       @unique 
-  
-  status        DriverStatus @default(OFFLINE)
-  
+  id   String @id @default(uuid())
+  name String
+
+  phone String
+  email String @unique
+
+  status DriverStatus @default(OFFLINE)
+
   // Detay teknik
-  vehicleType   VehicleType  @default(MOTORCYCLE)
-  vehiclePlate  String?      
-  
+  vehicleType  VehicleType @default(MOTORCYCLE)
+  vehiclePlate String?
+
   // Lojistik platfòm la
-  isVerified    Boolean      @default(false) 
-  currentLat    Float?
-  currentLng    Float?
-  lastActive    DateTime     @default(now())
-  
- userId    String   
-  user      User     @relation(fields: [userId], references: [id])
+  isVerified Boolean  @default(false)
+  currentLat Float?
+  currentLng Float?
+  lastActive DateTime @default(now())
+
+  userId String
+  user   User    @relation(fields: [userId], references: [id])
   // Yon chofè ka gen plizyè lòd
-  orders        Order[]
-  
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkingHours {
+  id        String  @id @default(uuid())
+  profileId String
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  day       String
+  isOpen    Boolean @default(true)
+  openTime  String  @default("08:00")
+  closeTime String  @default("18:00")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([profileId, day])
 }
