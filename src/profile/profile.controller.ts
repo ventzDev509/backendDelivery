@@ -9,7 +9,6 @@ import { UpdateWorkingHoursDto } from './dto/update-working-hours.dto';
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) { }
 
-  // 1. Mete wout upload-images la ANVAN wout ki gen :userId yo
   @Put('upload-images')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
@@ -30,17 +29,6 @@ export class ProfileController {
     return this.profileService.updateProfileImages(userId, files);
   }
 
-  // 2. Lòt wout yo vin apre
-  @Patch(':userId')
-  update(@Param('userId') userId: string, @Body() updateProfileDto: UpdateProfileDto) {
-    return this.profileService.update(userId, updateProfileDto);
-  }
-
-  @Get(':userId')
-  findOne(@Param('userId') userId: string) {
-    return this.profileService.findOne(userId);
-  }
-
   @Put('working-hours')
   @UseGuards(JwtAuthGuard)
   async updateWorkingHours(
@@ -49,5 +37,20 @@ export class ProfileController {
   ) {
     const userId = req.user.id;
     return this.profileService.updateWorkingHours(userId, updateWorkingHoursDto.hours);
+  }
+
+  @Get()
+  findAll() {
+    return this.profileService.findAll();
+  }
+
+  @Patch(':userId')
+  update(@Param('userId') userId: string, @Body() updateProfileDto: UpdateProfileDto) {
+    return this.profileService.update(userId, updateProfileDto);
+  }
+
+  @Get(':userId')
+  findOne(@Param('userId') userId: string) {
+    return this.profileService.findOne(userId);
   }
 }
