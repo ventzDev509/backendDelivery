@@ -11,6 +11,7 @@ import {
     Res,
     HttpCode,
     HttpStatus,
+    BadRequestException,
     UseInterceptors,
     UploadedFiles
 } from '@nestjs/common';
@@ -50,7 +51,7 @@ export class AuthController {
     @UseGuards(AuthGuard('google'))
     async googleAuthRedirect(@Req() req, @Res() res) {
         const result = await this.authService.registerWithGoogle(req.user);
-        const frontendUrl = `${process.env.LINK}/verify-success` || 'http://localhost:5173/verify-success';
+        const frontendUrl = `${process.env.FRONTEND_URL || process.env.LINK || 'http://localhost:5173'}/verify-success`;
         return res.redirect(`${frontendUrl}?token=${result.token}&type=google`);
     }
 
@@ -82,7 +83,12 @@ export class AuthController {
     @Patch('become-seller')
     @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
-    @UseInterceptors(FilesInterceptor('documents', 5))
+    @UseInterceptors(FilesInterceptor('documents', 5, {
+        limits: { fileSize: 10 * 1024 * 1024 },
+        fileFilter: (_req, file, callback) => ['application/pdf', 'image/jpeg', 'image/png'].includes(file.mimetype)
+            ? callback(null, true)
+            : callback(new BadRequestException('Dokiman an dwe PDF, JPG, oswa PNG.'), false),
+    }))
     async becomeSeller(
         @Request() req,
         @Body() dto: BecomeSellerDto,
@@ -96,6 +102,7 @@ export class AuthController {
     @Get('profile')
     @UseGuards(JwtAuthGuard)
     async getProfile(@Request() req) {
-        return this.authService.findOne(req.user.id);
+        // Kenbe wòl sesyon an (tankou DRIVER) san chanje wòl pèmanan User la.
+        return { ...await this.authService.findOne(req.user.id), role: req.user.role };
     }
 }

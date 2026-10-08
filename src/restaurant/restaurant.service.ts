@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMenuItemDto, UpdateMenuItemDto, UpdateRestaurantDto } from './dto/create-restaurant.dto';
 import { SupabaseService } from 'src/common/supabase.service';
@@ -18,7 +19,9 @@ export class RestaurantService {
           select: {
             id: true,
             email: true,
-            profile: true,
+            profile: {
+              select: { username: true, avatarUrl: true, bannerUrl: true, bio: true, location: true, lat: true, lng: true },
+            },
           },
         },
         menus: true,
@@ -29,13 +32,46 @@ export class RestaurantService {
     return r;
   }
 
+  async findPopularFoods(requestedLimit = 12) {
+    const take = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 30)
+      : 12;
+
+    return this.prisma.menuItem.findMany({
+      where: {
+        OR: [{ isAvailable: true }, { isAvailable: null }],
+      },
+      include: {
+        category: { select: { id: true, name: true } },
+        restaurant: {
+          select: {
+            id: true,
+            name: true,
+            owner: {
+              select: {
+                profile: {
+                  select: { id: true, username: true, avatarUrl: true, bannerUrl: true },
+                },
+              },
+            },
+            reviews: { select: { rating: true } },
+          },
+        },
+      },
+      orderBy: [{ salesCount: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
+      take,
+    });
+  }
+
   // 3. JWENN YON RESTORAN PA ID
   async findOne(id: string) {
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id },
       include: {
-        owner: true,
-        menus: true,
+        owner: {
+          select: { id: true, email: true, profile: { select: { username: true, avatarUrl: true, bannerUrl: true, location: true } } },
+        },
+        menus: { include: { category: { select: { id: true, name: true } } } },
         reviews: true,
       },
     });
@@ -62,7 +98,8 @@ export class RestaurantService {
   }
 
   // 5. METE A JOU RESTORAN A
-  async update(id: string, dto: UpdateRestaurantDto) {
+  async update(id: string, dto: UpdateRestaurantDto, actor: { id: string; role: Role }) {
+    await this.assertCanManage(id, actor);
     await this.findOne(id);
 
     return this.prisma.restaurant.update({
@@ -75,7 +112,8 @@ export class RestaurantService {
   }
 
   // 6. SIYE YON RESTORAN
-  async remove(id: string) {
+  async remove(id: string, actor: { id: string; role: Role }) {
+    await this.assertCanManage(id, actor);
     await this.findOne(id);
 
     return this.prisma.restaurant.delete({
@@ -91,8 +129,10 @@ export class RestaurantService {
   async createMenuItem(
     restaurantId: string,
     dto: CreateMenuItemDto,
-    file?: Express.Multer.File
+    actor: { id: string; role: Role },
+    file?: Express.Multer.File,
   ) {
+    await this.assertCanManage(restaurantId, actor);
     // 1. Asire w restoran an egziste
     await this.findOne(restaurantId);
 
@@ -172,9 +212,11 @@ export class RestaurantService {
   async updateMenuItem(
     id: string,
     dto: UpdateMenuItemDto,
-    file?: Express.Multer.File
+    actor: { id: string; role: Role },
+    file?: Express.Multer.File,
   ) {
     const existingItem = await this.findOneMenuItem(id);
+    await this.assertCanManage(existingItem.restaurantId, actor);
 
     let imageUrl = dto.image ?? existingItem.image;
 
@@ -222,8 +264,9 @@ export class RestaurantService {
   }
 
   // 11. EFASE YON ATIK NAN MENU A (Epi retire imaj li nan Supabase)
-  async removeMenuItem(id: string) {
+  async removeMenuItem(id: string, actor: { id: string; role: Role }) {
     const existingItem = await this.findOneMenuItem(id);
+    await this.assertCanManage(existingItem.restaurantId, actor);
 
     // 1. Efase atik la nan baz done Prisma a
     const deletedItem = await this.prisma.menuItem.delete({
@@ -236,5 +279,12 @@ export class RestaurantService {
     }
 
     return deletedItem;
+  }
+
+  private async assertCanManage(restaurantId: string, actor: { id: string; role: Role }) {
+    if (actor.role === Role.ADMIN) return;
+    if (actor.role !== Role.RESTAURANT_OWNER) throw new ForbiddenException();
+    const restaurant = await this.prisma.restaurant.findUnique({ where: { id: restaurantId }, select: { ownerId: true } });
+    if (!restaurant || restaurant.ownerId !== actor.id) throw new ForbiddenException('Ou pa gen dwa modifye restoran sa a.');
   }
 }

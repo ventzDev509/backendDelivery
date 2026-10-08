@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { StoreStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service'; // Asire w chemen an bon
 import { Profile, Prisma } from '@prisma/client';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -144,6 +145,13 @@ export class ProfileService {
             },
             include: { workingHours: true },
         });
+    }
+
+    async updateStoreStatus(userId: string, status: StoreStatus) {
+        const profile = await this.prisma.profile.findUnique({ where: { userId }, select: { sellerStatus: true, isSeller: true } });
+        if (!profile) throw new NotFoundException('Pwofil sa a pa jwenn.');
+        if (!profile.isSeller || profile.sellerStatus !== 'APPROVED') throw new ForbiddenException('Se sèlman yon machann ki apwouve ki ka chanje estati boutik li.');
+        return this.prisma.profile.update({ where: { userId }, data: { storeStatus: status }, include: { workingHours: true } });
     }
 
     // 7. MIZAJOU OSWA AJOUTE ORÈ OPERASYON YO (WorkingHours - Sipòte fòma 12h)

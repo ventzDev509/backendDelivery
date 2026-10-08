@@ -1,48 +1,58 @@
-import {
-    Controller, Get, Post, Patch, Delete,
-    Param, Body, UseGuards,
-    Request
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, Request } from '@nestjs/common';
 import { DriverService } from './driver.service';
 import { CreateDriverDto } from './dto/create-driver.dto';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { RolesGuard } from 'src/auth/decorators/roles.guard';
-import { JwtAuthGuard } from 'src/guard/jwt-auth.guard';
 import { UpdateDriverDto } from './dto/update-driver-dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/decorators/roles.guard';
+import { JwtAuthGuard } from '../guard/jwt-auth.guard';
+import { DriverLoginDto } from './dto/driver-login.dto';
 
 @Controller('drivers')
 export class DriverController {
-    constructor(private readonly driverService: DriverService) { }
+  constructor(private readonly driverService: DriverService) {}
 
-    
-    @Get()
-    findAll() {
-        return this.driverService.findAll();
-    }
+  @Post('login')
+  login(@Body() dto: DriverLoginDto) { return this.driverService.login(dto); }
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
-    @Post()
-    create(@Body() createDriverDto: CreateDriverDto, @Request() req) {
-        return this.driverService.create(createDriverDto, req.user.id);
-    }
+  @Get('available')
+  findAvailable() { return this.driverService.findAvailable(); }
 
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateDriverDto: UpdateDriverDto) {
-        return this.driverService.update(id, updateDriverDto);
-    }
+  @Get('me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('DRIVER')
+  findMine(@Request() req: any) { return this.driverService.findMine(req.user.id, req.user.driverId); }
 
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
-    @Patch(':id/approve')
-    async approveDriver(@Param('id') id: string) {
-        return await this.driverService.update(id, { isVerified: true } as any);
-    }
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  findAll() { return this.driverService.findAll(); }
 
-    @Delete(':id')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('ADMIN')
-    remove(@Param('id') id: string) {
-        return this.driverService.delete(id);
-    }
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  create(@Body() dto: CreateDriverDto) { return this.driverService.create(dto); }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'DRIVER')
+  update(@Param('id') id: string, @Body() dto: UpdateDriverDto, @Request() req: any) {
+    return this.driverService.update(id, dto, req.user);
+  }
+
+  @Get(':id/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'DRIVER')
+  getStats(@Param('id') id: string, @Request() req: any) {
+    return this.driverService.getDriverStats(id, req.user);
+  }
+
+  @Patch(':id/approve')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  approveDriver(@Param('id') id: string) { return this.driverService.verify(id); }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  remove(@Param('id') id: string) { return this.driverService.delete(id); }
 }

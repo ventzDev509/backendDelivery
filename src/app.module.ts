@@ -10,11 +10,10 @@ import { DriverModule } from './driver/driver.module';
 import { ProfileModule } from './profile/profile.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
 import { CategoryModule } from './category/category.module';
+import { OrderModule } from './order/order.module';
 
 @Module({
-  imports: [AuthModule, PrismaModule, MailModule, ConfigModule.forRoot({
-    isGlobal: true,
-  }), AdminModule, DriverModule, ProfileModule, RestaurantModule, CategoryModule,],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, PrismaModule, MailModule, OrderModule, AdminModule, DriverModule, ProfileModule, RestaurantModule, CategoryModule],
   controllers: [AppController],
   providers: [AppService],
 })
